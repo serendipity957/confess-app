@@ -244,8 +244,14 @@
   }
 
   // ===== 已登录：数据看板 =====
+  let dashboardLoaded = false;
   async function loadDashboard() {
-    wrap.innerHTML = '<div class="empty">加载中…</div>';
+    const _sy = window.scrollY || 0;  // 记住当前滚动位置，轮询重渲染后恢复，避免页面跳回顶部
+    // 记住回复框已输入内容与焦点，避免轮询重渲染打断打字
+    const _oldReply = document.getElementById("chatReply");
+    const _replyVal = _oldReply ? _oldReply.value : "";
+    const _replyFocus = _oldReply && document.activeElement === _oldReply;
+    if (!dashboardLoaded) wrap.innerHTML = '<div class="empty">加载中…</div>';
     try {
       const [r1, r2, r3] = await Promise.all([
         sb.from("chat").select("*").order("id", { ascending: true }),
@@ -388,8 +394,16 @@
         if (e.key === "Enter") sendChatReply();
       });
       buildEmojiPanel();
+      // 恢复回复框内容与焦点
+      const _newReply = document.getElementById("chatReply");
+      if (_newReply && _replyVal) {
+        _newReply.value = _replyVal;
+        if (_replyFocus) _newReply.focus();
+      }
+      dashboardLoaded = true;
+      if (_sy > 0) requestAnimationFrame(function () { window.scrollTo(0, _sy); });
     } catch (e) {
-      wrap.innerHTML = '<div class="empty">加载失败：' + esc(e.message || "检查网络") + '</div>';
+      if (!dashboardLoaded) wrap.innerHTML = '<div class="empty">加载失败：' + esc(e.message || "检查网络") + '</div>';
     }
   }
 
