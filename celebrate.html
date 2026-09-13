@@ -70,9 +70,19 @@
     color: #fff; font-size: 15px; font-weight: 600;
     cursor: pointer; font-family: inherit;
   }
+  .contact-card .btn-line {
+    background: #fff; color: #d6336c;
+    border: 2px solid #ffc2d4;
+  }
   .contact-done {
     font-size: 14px; color: #2f9e44; font-weight: 600;
     text-align: center; padding: 8px 0;
+  }
+  .link-btn {
+    display: block; text-align: center; margin-top: 10px;
+    padding: 13px; border-radius: 14px;
+    background: #fff; color: #d6336c; border: 2px solid #ffc2d4;
+    font-size: 15px; font-weight: 600; text-decoration: none; font-family: inherit;
   }
   .fall {
     position: fixed; top: -40px;
@@ -93,37 +103,40 @@
   <p class="sub">你说了"我愿意"<br>从这一刻起，我们就是彼此的 Ta 了</p>
   <p class="sub" style="font-size:13px;color:#b07a8f;">往后请多指教，我会好好珍惜这份喜欢</p>
 
-  {% if record %}
-  <!-- 交换联系方式：先问对方愿不愿意 -->
   <div class="contact-card" id="contactCard">
-    {% if record.get('contact') %}
+    <div id="loadingBox" class="c-title">加载中…</div>
+    <div id="askBox" style="display:none;">
+      <div class="c-title">💌 要不要交换一下联系方式？</div>
+      <div class="c-sub">愿意的话告诉我微信 / QQ / 手机号，Ta 就能联系到你；<br>不想给也没关系，我们可以先在交流空间聊</div>
+      <button onclick="showContactForm()">愿意，告诉你 💌</button>
+      <button class="btn-line" onclick="showChatTip()">先不啦，去交流空间聊聊 🤗</button>
+    </div>
+    <div id="formBox" style="display:none;">
+      <div class="c-title">💌 写下你的联系方式</div>
+      <div class="c-sub">微信 / QQ / 手机号都可以</div>
+      <input id="contact" type="text" placeholder="微信号 / QQ / 手机号…" maxlength="200">
+      <button onclick="sendContact()">告诉 Ta 💌</button>
+    </div>
+    <div id="tipBox" style="display:none;">
+      <div class="c-title">🤗 没关系，不急</div>
+      <div class="c-sub">想聊的时候随时来交流空间，<br>聊得开心了再给也不迟～</div>
+      <a class="link-btn" href="chat.html">💬 去交流空间聊聊</a>
+    </div>
+    <div id="doneBox" style="display:none;">
       <div class="c-title">💌 联系方式已经交换啦</div>
       <div class="contact-done">你留下的联系方式 Ta 已经收到 ✅</div>
-    {% else %}
-      <div id="askBox">
-        <div class="c-title">💌 要不要交换一下联系方式？</div>
-        <div class="c-sub">愿意的话告诉我微信 / QQ / 手机号，Ta 就能联系到你；<br>不想给也没关系，我们可以先在交流空间聊</div>
-        <button onclick="showContactForm()">愿意，告诉你 💌</button>
-        <button onclick="showChatTip()" style="background:#fff;color:#d6336c;border:2px solid #ffc2d4;">先不啦，去交流空间聊聊 🤗</button>
-      </div>
-      <div id="formBox" style="display:none;">
-        <div class="c-title">💌 写下你的联系方式</div>
-        <div class="c-sub">微信 / QQ / 手机号都可以</div>
-        <input id="contact" type="text" placeholder="微信号 / QQ / 手机号…" maxlength="200">
-        <button onclick="sendContact()">告诉 Ta 💌</button>
-      </div>
-      <div id="tipBox" style="display:none;">
-        <div class="c-title">🤗 没关系，不急</div>
-        <div class="c-sub">想聊的时候随时来交流空间，<br>聊得开心了再给也不迟～</div>
-        <a href="/chat" style="display:block;text-align:center;margin-top:10px;padding:13px;border-radius:14px;background:#fff;color:#d6336c;border:2px solid #ffc2d4;font-size:15px;font-weight:600;text-decoration:none;font-family:inherit;">💬 去交流空间聊聊</a>
-      </div>
-    {% endif %}
+    </div>
   </div>
-  {% endif %}
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script>
-  var MY_ID = "{{ record['id'] if record else '' }}";
+  const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+  // 从 URL 拿记录 id
+  const params = new URLSearchParams(window.location.search);
+  const MY_ID = params.get("id") || "";
 
   function showContactForm() {
     document.getElementById("askBox").style.display = "none";
@@ -144,21 +157,42 @@
       return;
     }
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: MY_ID, contact: text })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        const card = document.getElementById("contactCard");
-        card.innerHTML = '<div class="c-title">💌 联系方式已经交换啦</div>' +
-                         '<div class="contact-done">你留下的联系方式 Ta 已经收到 ✅</div>';
-      } else {
-        alert("发送失败：" + (data.error || "未知原因"));
+      const { error } = await sb.from("records").update({ contact: text }).eq("id", MY_ID);
+      if (error) {
+        alert("发送失败：" + (error.message || "未知原因"));
+        return;
       }
+      showDone();
     } catch (e) {
       alert("发送失败，检查网络");
+    }
+  }
+
+  function showDone() {
+    document.getElementById("formBox").style.display = "none";
+    document.getElementById("askBox").style.display = "none";
+    document.getElementById("tipBox").style.display = "none";
+    document.getElementById("doneBox").style.display = "block";
+  }
+
+  // 页面加载：看这条记录是否已经交换过联系方式
+  async function init() {
+    if (!MY_ID) {
+      document.getElementById("loadingBox").textContent = "链接好像不完整，回主页重新选择一下吧 💌";
+      return;
+    }
+    try {
+      const { data, error } = await sb.from("records").select("*").eq("id", MY_ID).limit(1);
+      if (error) throw error;
+      const rec = data && data[0];
+      document.getElementById("loadingBox").style.display = "none";
+      if (rec && rec.contact) {
+        showDone();
+      } else {
+        document.getElementById("askBox").style.display = "block";
+      }
+    } catch (e) {
+      document.getElementById("loadingBox").textContent = "加载失败，检查网络后刷新";
     }
   }
 
@@ -174,6 +208,8 @@
     el.style.animationDelay = (-Math.random() * 8) + "s";
     document.body.appendChild(el);
   }
+
+  init();
 </script>
 </body>
 </html>

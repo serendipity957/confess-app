@@ -128,13 +128,17 @@
   <div id="talk-area" style="margin-top:18px;border-top:1px dashed #ffc2d4;padding-top:14px;">
     <p style="font-size:12px;color:#b07a8f;margin-bottom:10px;">还没想好？可以先聊聊</p>
     <!-- 去交流空间 -->
-    <button class="btn btn-send" onclick="location.href='/chat'">💬 去交流空间聊聊</button>
+    <button class="btn btn-send" onclick="location.href='chat.html'">💬 去交流空间聊聊</button>
   </div>
 </div>
 
 <div id="toast" class="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script>
+  const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
   // 飘浮小爱心（装饰）
   for (let i = 0; i < 12; i++) {
     const h = document.createElement("div");
@@ -152,6 +156,21 @@
     t.textContent = text;
     t.className = "toast show" + (ok ? " ok" : "");
     setTimeout(() => t.classList.remove("show"), 3000);
+  }
+
+  // 生成记录 id（10 位随机）
+  function genId() {
+    let s = "";
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  function now() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
+           p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
   }
 
   // 有喜欢的人了：展开"喜欢的人是谁"追问（可选）
@@ -176,36 +195,40 @@
     document.getElementById("crush-box").style.display = "none";
   }
 
-  // 提交回应：choice 必选；返回是否成功。成功后跳转到对应结果页（带记录 id，可看回复）
+  // 提交回应：choice 必选。成功后跳转到对应结果页（带记录 id，可看回复）
   async function respond(choice, withMessage, crush, extraMsg) {
     const message = extraMsg !== undefined ? extraMsg : "";
     try {
-      const res = await fetch("/api/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ choice: choice, message: message, crush: crush || "" })
+      const id = genId();
+      const { data, error } = await sb.from("records").insert({
+        id: id,
+        time: now(),
+        choice: choice,
+        crush: crush || "",
+        contact: ""
       });
-      const data = await res.json();
-      if (data.ok) {
-        const id = data.id || "";
-        if (choice === "我愿意") {
-          showToast("收到啦！这句话我等了很久 💕", true);
-          setTimeout(() => { window.location.href = "/celebrate?id=" + id; }, 1200);
-        } else if (choice === "有喜欢的人了") {
-          showToast("知道了，谢谢你的坦诚 💔", true);
-          setTimeout(() => { window.location.href = "/result?choice=" + encodeURIComponent("有喜欢的人了") + "&id=" + id; }, 1200);
-        } else if (choice === "还是做朋友吧") {
-          showToast("好，听你的，做朋友 🤝", true);
-          setTimeout(() => { window.location.href = "/result?choice=" + encodeURIComponent("还是做朋友吧") + "&id=" + id; }, 1200);
-        } else {
-          showToast("收到啦，这个页面会一直留着，想好了随时回来 🤗", true);
-          setTimeout(() => { window.location.href = "/result?choice=" + encodeURIComponent("让我再想想") + "&id=" + id; }, 1200);
-        }
-        return true;
-      } else {
-        showToast("发送失败：" + (data.error || "未知原因"), false);
+      if (error) {
+        showToast("发送失败：" + (error.message || "未知原因"), false);
         return false;
       }
+      // 如果有附带消息（做朋友/再想想的默认话），存进 messages 表
+      if (message) {
+        await sb.from("messages").insert({ record_id: id, who: "ta", text: message, time: now() });
+      }
+      if (choice === "我愿意") {
+        showToast("收到啦！这句话我等了很久 💕", true);
+        setTimeout(() => { window.location.href = "celebrate.html?id=" + id; }, 1200);
+      } else if (choice === "有喜欢的人了") {
+        showToast("知道了，谢谢你的坦诚 💔", true);
+        setTimeout(() => { window.location.href = "result.html?choice=" + encodeURIComponent("有喜欢的人了") + "&id=" + id; }, 1200);
+      } else if (choice === "还是做朋友吧") {
+        showToast("好，听你的，做朋友 🤝", true);
+        setTimeout(() => { window.location.href = "result.html?choice=" + encodeURIComponent("还是做朋友吧") + "&id=" + id; }, 1200);
+      } else {
+        showToast("收到啦，这个页面会一直留着，想好了随时回来 🤗", true);
+        setTimeout(() => { window.location.href = "result.html?choice=" + encodeURIComponent("让我再想想") + "&id=" + id; }, 1200);
+      }
+      return true;
     } catch (e) {
       showToast("发送失败，检查下网络", false);
       return false;

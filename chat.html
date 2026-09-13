@@ -84,16 +84,7 @@
   </div>
 
   <div class="body" id="chatBody">
-    {% if messages %}
-      {% for m in messages %}
-      <div class="row {{ 'me' if m['who'] == 'me' else 'ta' }}">
-        <div class="bubble">{{ m['text'] }}</div>
-        <div class="mtime">{{ m['time'][11:16] }}</div>
-      </div>
-      {% endfor %}
-    {% else %}
-      <div class="empty">这里还没有消息，说点什么吧 💌</div>
-    {% endif %}
+    <div class="empty">加载中…</div>
   </div>
 
   <div class="input-row">
@@ -103,28 +94,66 @@
 
   <div class="foot">
     想好之后，回主页点按钮告诉 Ta 你的答案
-    <br><a href="/">← 回表白主页</a>
+    <br><a href="index.html">← 回表白主页</a>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script>
+  const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+  function now() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
+           p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+
+  async function loadChat() {
+    try {
+      const { data, error } = await sb.from("chat").select("*").order("id", { ascending: true });
+      if (error) throw error;
+      const body = document.getElementById("chatBody");
+      const last = body.scrollTop + body.clientHeight >= body.scrollHeight - 30;
+      if (!data || data.length === 0) {
+        body.innerHTML = '<div class="empty">这里还没有消息，说点什么吧 💌</div>';
+        return;
+      }
+      body.innerHTML = "";
+      data.forEach(function (m) {
+        const row = document.createElement("div");
+        row.className = "row " + (m.who === "me" ? "me" : "ta");
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = m.text || "";
+        const t = document.createElement("div");
+        t.className = "mtime";
+        t.textContent = m.time ? m.time.slice(11, 16) : "";
+        row.appendChild(bubble);
+        row.appendChild(t);
+        body.appendChild(row);
+      });
+      if (last) body.scrollTop = body.scrollHeight;
+    } catch (e) {
+      document.getElementById("chatBody").innerHTML = '<div class="empty">加载失败，检查网络后刷新</div>';
+    }
+  }
+
   async function sendChat() {
     const input = document.getElementById("chatText");
     const text = input.value.trim();
     if (!text) return;
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        input.value = "";
-        location.reload();
-      } else {
-        alert("发送失败：" + (data.error || "未知原因"));
+      const { error } = await sb.from("chat").insert({ who: "ta", text: text, time: now() });
+      if (error) {
+        alert("发送失败：" + (error.message || "未知原因"));
+        return;
       }
+      input.value = "";
+      await loadChat();
+      const body = document.getElementById("chatBody");
+      body.scrollTop = body.scrollHeight;
     } catch (e) {
       alert("发送失败，检查网络");
     }
@@ -134,6 +163,10 @@
   document.getElementById("chatText").addEventListener("keydown", function (e) {
     if (e.key === "Enter") sendChat();
   });
+
+  loadChat();
+  // 每 5 秒刷新一次，看有没有新消息
+  setInterval(loadChat, 5000);
 </script>
 </body>
 </html>
