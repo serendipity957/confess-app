@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💬 交流空间</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #fff3f6 0%, #ffe9ef 50%, #f6eefb 100%);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .chat-card {
+    max-width: 440px; width: 100%;
+    background: rgba(255,255,255,0.9);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 8px 30px rgba(214, 51, 108, 0.14);
+    display: flex; flex-direction: column;
+    min-height: 70vh;
+  }
+  .head {
+    text-align: center;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed #ffc2d4;
+  }
+  .head .title { font-size: 20px; font-weight: 700; color: #d6336c; }
+  .head .sub { font-size: 12px; color: #b07a8f; margin-top: 4px; }
+  .body {
+    flex: 1;
+    max-height: 52vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 14px 2px;
+  }
+  .row { display: flex; flex-direction: column; }
+  .row.me { align-items: flex-end; }
+  .row.ta { align-items: flex-start; }
+  .bubble {
+    max-width: 82%;
+    padding: 9px 13px;
+    border-radius: 14px;
+    font-size: 14px; line-height: 1.6;
+    word-break: break-word; white-space: pre-wrap;
+  }
+  .row.ta .bubble { background: #ffe9f0; color: #5c3344; border-bottom-left-radius: 4px; }
+  .row.me .bubble { background: linear-gradient(135deg, #ff6b9d, #d6336c); color: #fff; border-bottom-right-radius: 4px; }
+  .mtime { font-size: 10px; color: #c9a7b8; margin-top: 3px; padding: 0 4px; }
+  .empty { text-align: center; color: #c9a7b8; font-size: 13px; padding: 30px 10px; }
+  .input-row {
+    display: flex; gap: 8px; margin-top: 12px;
+    border-top: 1px dashed #ffc2d4; padding-top: 12px;
+  }
+  .input-row input {
+    flex: 1; min-width: 0;
+    padding: 11px 13px;
+    border: 2px solid #ffc2d4; border-radius: 14px;
+    font-size: 14px; font-family: inherit;
+    color: #5c3344; background: #fff;
+  }
+  .input-row input:focus { outline: none; border-color: #d6336c; }
+  .input-row button {
+    padding: 11px 18px;
+    border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #ff6b9d, #d6336c);
+    color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .foot {
+    text-align: center; font-size: 11px; color: #c9a7b8;
+    margin-top: 12px;
+  }
+  .foot a { color: #d6336c; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="chat-card">
+  <div class="head">
+    <div class="title">💬 交流空间</div>
+    <div class="sub">确认之前，想说什么都可以在这里说</div>
+  </div>
+
+  <div class="body" id="chatBody">
+    {% if messages %}
+      {% for m in messages %}
+      <div class="row {{ 'me' if m['who'] == 'me' else 'ta' }}">
+        <div class="bubble">{{ m['text'] }}</div>
+        <div class="mtime">{{ m['time'][11:16] }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">这里还没有消息，说点什么吧 💌</div>
+    {% endif %}
+  </div>
+
+  <div class="input-row">
+    <input id="chatText" type="text" placeholder="想说什么都可以…" maxlength="500">
+    <button onclick="sendChat()">发送 💌</button>
+  </div>
+
+  <div class="foot">
+    想好之后，回主页点按钮告诉 Ta 你的答案
+    <br><a href="/">← 回表白主页</a>
+  </div>
+</div>
+
+<script>
+  async function sendChat() {
+    const input = document.getElementById("chatText");
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        input.value = "";
+        location.reload();
+      } else {
+        alert("发送失败：" + (data.error || "未知原因"));
+      }
+    } catch (e) {
+      alert("发送失败，检查网络");
+    }
+  }
+
+  // 回车发送
+  document.getElementById("chatText").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") sendChat();
+  });
+</script>
+</body>
+</html>

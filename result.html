@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💌 你的回应</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #fff3f6 0%, #ffe9ef 50%, #f6eefb 100%);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; overflow-x: hidden;
+  }
+  .card {
+    text-align: center; z-index: 2; position: relative;
+    max-width: 420px; width: 100%;
+    background: rgba(255,255,255,0.7);
+    border-radius: 24px;
+    padding: 36px 26px;
+    box-shadow: 0 8px 30px rgba(214, 51, 108, 0.12);
+  }
+  .icon { font-size: 80px; line-height: 1; display: inline-block; }
+  .icon.beat { animation: beat 1.2s ease-in-out infinite; }
+  @keyframes beat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.15); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.1); }
+  }
+  h1 { font-size: 28px; color: #d6336c; margin: 16px 0 10px; font-weight: 700; }
+  .sub { font-size: 14px; color: #8a4a63; line-height: 1.8; margin-bottom: 6px; }
+  .hint { font-size: 12px; color: #b07a8f; margin-top: 14px; line-height: 1.7; }
+  .bubble {
+    background: rgba(255,255,255,0.85);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-top: 18px;
+    text-align: left;
+    box-shadow: 0 2px 10px rgba(214, 51, 108, 0.08);
+  }
+  .bubble .who { font-size: 12px; color: #b07a8f; margin-bottom: 6px; font-weight: 600; }
+  .bubble .text { font-size: 14px; color: #5c3344; line-height: 1.6; word-break: break-word; white-space: pre-wrap; }
+  .bubble.reply { border-left: 3px solid #d6336c; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  {% if choice == '有喜欢的人了' %}
+    <span class="icon">💔</span>
+    <h1>知道了，谢谢你的坦诚</h1>
+    <p class="sub">喜欢你是我自己的事，你有喜欢的人也没关系。<br>还是祝福你，希望你幸福。</p>
+    {% if record and record.get('crush') %}
+    <div class="bubble">
+      <div class="who">你告诉我的人</div>
+      <div class="text">{{ record['crush'] }}</div>
+    </div>
+    {% endif %}
+  {% elif choice == '还是做朋友吧' %}
+    <span class="icon">🤝</span>
+    <h1>好，听你的，做朋友</h1>
+    <p class="sub">能做朋友也挺好的。<br>这份喜欢是真的，但我会尊重你。</p>
+  {% elif choice == '让我再想想' %}
+    <span class="icon">⏳</span>
+    <h1>我在这里等你</h1>
+    <p class="sub">不着急，你慢慢想。<br>这个页面会一直留着，想好了随时回来。</p>
+  {% else %}
+    <span class="icon">💌</span>
+    <h1>收到你的回应了</h1>
+    <p class="sub">谢谢你愿意告诉我。</p>
+  {% endif %}
+
+  {% if choice == '还是做朋友吧' or choice == '让我再想想' or choice == '有喜欢的人了' %}
+  <!-- 表态后留言 -->
+  <div style="margin-top:20px;">
+    <button onclick="toggleMsg()"
+            style="width:100%;padding:13px;border:2px solid #ffc2d4;border-radius:30px;background:#fff;color:#d6336c;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">✍️ 还有话想说（留言）</button>
+    <div id="msg-box" style="display:none;margin-top:10px;text-align:left;">
+      <textarea id="msg" placeholder="写点什么都可以，我会认真看…"
+                style="width:100%;padding:12px;border:2px solid #ffc2d4;border-radius:14px;font-size:15px;font-family:inherit;resize:vertical;min-height:70px;color:#5c3344;background:#fff;box-sizing:border-box;"></textarea>
+      <button onclick="sendMsg()"
+              style="margin-top:10px;width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#ff6b9d,#d6336c);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">发出去 💌</button>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function toggleMsg() {
+    const box = document.getElementById("msg-box");
+    box.style.display = box.style.display === "block" ? "none" : "block";
+    if (box.style.display === "block") document.getElementById("msg").focus();
+  }
+
+  async function sendMsg() {
+    const input = document.getElementById("msg");
+    const text = input.value.trim();
+    if (!text) { alert("先写点什么再发哦"); return; }
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        input.value = "";
+        document.getElementById("msg-box").style.display = "none";
+        alert("留言发出去了，Ta 会在交流空间看到 💌");
+      } else {
+        alert("发送失败：" + (data.error || "未知原因"));
+      }
+    } catch (e) {
+      alert("发送失败，检查网络");
+    }
+  }
+</script>
+
+</body>
+</html>

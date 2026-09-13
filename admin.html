@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💌 表白管理</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f7f0f3;
+    min-height: 100vh; padding: 20px;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 22px; color: #d6336c; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #9a7a88; margin-bottom: 20px; }
+
+  /* 统计卡片 */
+  .stats { display: flex; gap: 10px; margin-bottom: 20px; }
+  .stat {
+    flex: 1; background: #fff;
+    border-radius: 14px; padding: 14px 10px; text-align: center;
+    box-shadow: 0 2px 10px rgba(214, 51, 108, 0.08);
+  }
+  .stat .num { font-size: 24px; font-weight: 700; color: #d6336c; }
+  .stat .label { font-size: 12px; color: #9a7a88; margin-top: 4px; }
+
+  /* 交流空间卡片 */
+  .chat-box {
+    background: #fff; border-radius: 16px;
+    padding: 16px; margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(214, 51, 108, 0.08);
+  }
+  .chat-box .chat-title {
+    font-size: 15px; font-weight: 700; color: #d6336c;
+    padding-bottom: 10px; margin-bottom: 10px;
+    border-bottom: 1px dashed #ffc2d4;
+  }
+  .chat-body {
+    max-height: 260px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 2px 0;
+  }
+  .row { display: flex; flex-direction: column; }
+  .row.me { align-items: flex-end; }
+  .row.ta { align-items: flex-start; }
+  .bubble {
+    max-width: 82%;
+    padding: 9px 13px;
+    border-radius: 14px;
+    font-size: 14px; line-height: 1.6;
+    word-break: break-word; white-space: pre-wrap;
+  }
+  .row.ta .bubble { background: #ffe9f0; color: #5c3344; border-bottom-left-radius: 4px; }
+  .row.me .bubble { background: linear-gradient(135deg, #ff6b9d, #d6336c); color: #fff; border-bottom-right-radius: 4px; }
+  .mtime { font-size: 10px; color: #c9a7b8; margin-top: 3px; padding: 0 4px; }
+  .chat-input { display: flex; gap: 8px; margin-top: 12px; }
+  .chat-input input {
+    flex: 1; min-width: 0;
+    padding: 10px 12px;
+    border: 2px solid #ffc2d4; border-radius: 12px;
+    font-size: 14px; font-family: inherit;
+    color: #5c3344; background: #fff;
+  }
+  .chat-input input:focus { outline: none; border-color: #d6336c; }
+  .chat-input button {
+    padding: 10px 16px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, #ff6b9d, #d6336c);
+    color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* 留言卡片 */
+  .item {
+    background: #fff; border-radius: 16px;
+    padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(214, 51, 108, 0.08);
+  }
+  .item-head {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .tag { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+  .tag-yes { background: #ffe0ea; color: #d6336c; }
+  .tag-think { background: #fff0d6; color: #b07a2a; }
+  .tag-crush { background: #e8e0f5; color: #7a4db8; }
+  .time { font-size: 12px; color: #b9a2ad; }
+  .crush-line {
+    font-size: 13px; color: #7a4db8; font-weight: 600;
+    background: #f1eafa; border-radius: 10px;
+    padding: 8px 12px; margin-bottom: 8px;
+  }
+  .msg {
+    font-size: 14px; color: #5c3344;
+    background: #fdf2f6; border-radius: 10px;
+    padding: 10px 12px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .empty { text-align: center; color: #b9a2ad; font-size: 14px; padding: 40px 0; }
+
+  /* 锁屏（输密码） */
+  .lock {
+    background: #fff; border-radius: 20px;
+    padding: 36px 24px; text-align: center;
+    box-shadow: 0 2px 14px rgba(214, 51, 108, 0.1);
+    margin-top: 40px;
+  }
+  .lock .heart { font-size: 44px; }
+  .lock h2 { font-size: 18px; color: #d6336c; margin: 12px 0 6px; }
+  .lock p { font-size: 13px; color: #9a7a88; margin-bottom: 18px; }
+  .lock input {
+    width: 100%; padding: 14px;
+    border: 2px solid #ffc2d4; border-radius: 14px;
+    font-size: 16px; text-align: center; letter-spacing: 6px;
+    font-family: inherit;
+  }
+  .lock input:focus { outline: none; border-color: #d6336c; }
+  .lock button {
+    margin-top: 12px; width: 100%;
+    padding: 14px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #ff6b9d, #d6336c);
+    color: #fff; font-size: 16px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .lock .err { color: #e03131; font-size: 13px; margin-top: 10px; }
+  .logout {
+    display: inline-block; margin-top: 16px;
+    font-size: 12px; color: #b9a2ad; text-decoration: none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+{% if locked %}
+  <!-- ===== 未登录：输密码 ===== -->
+  <div class="lock">
+    <div class="heart">🔒</div>
+    <h2>这是表白者的专属页面</h2>
+    <p>输入管理密码才能看 Ta 的回应</p>
+    <form method="POST">
+      <input type="password" name="password" placeholder="管理密码" autocomplete="off">
+      <button type="submit">查看留言</button>
+    </form>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  </div>
+
+{% else %}
+  <!-- ===== 已登录 ===== -->
+  <h1>💌 表白管理</h1>
+  <p class="sub">交流空间在确认前用；确认通过主页按钮</p>
+
+  <!-- 交流空间（确认前的聊天） -->
+  <div class="chat-box">
+    <div class="chat-title">💬 交流空间</div>
+    <div class="chat-body" id="chatBody">
+      {% if chat_messages %}
+        {% for m in chat_messages %}
+        <div class="row {{ 'me' if m['who'] == 'me' else 'ta' }}">
+          <div class="bubble">{{ m['text'] }}</div>
+          <div class="mtime">{{ m['time'][11:16] }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center;color:#b9a2ad;font-size:13px;padding:16px 0;">还没有消息，把交流空间链接发给 Ta 💌</div>
+      {% endif %}
+    </div>
+    <div class="chat-input">
+      <input id="chatReply" type="text" placeholder="回复 Ta…" maxlength="500">
+      <button onclick="sendChatReply()">回复</button>
+    </div>
+  </div>
+
+  <!-- 确认记录 -->
+  <div class="stats">
+    <div class="stat"><div class="num">{{ stats.yes }}</div><div class="label">愿意</div></div>
+    <div class="stat"><div class="num">{{ stats.think }}</div><div class="label">再想想</div></div>
+    <div class="stat"><div class="num">{{ stats.crush }}</div><div class="label">拒绝</div></div>
+  </div>
+
+  {% if records %}
+    {% for r in records %}
+    <div class="item">
+      <div class="item-head">
+        {% if r['choice'] == '有喜欢的人了' %}
+        <span class="tag tag-crush">💔 有喜欢的人了</span>
+        {% elif r['choice'] == '还是做朋友吧' %}
+        <span class="tag tag-crush">🤝 还是做朋友吧</span>
+        {% else %}
+        <span class="tag {{ 'tag-yes' if r['choice'] == '我愿意' else 'tag-think' }}">{{ r['choice'] }}</span>
+        {% endif %}
+        <span class="time">{{ r['time'] }}</span>
+      </div>
+      {% if r.get('crush') %}
+      <div class="crush-line">💘 Ta 喜欢的人：{{ r['crush'] }}</div>
+      {% endif %}
+      {% if r.get('messages') %}
+      <div class="msg">{{ r['messages'][0]['text'] }}</div>
+      {% endif %}
+      {% if r.get('contact') %}
+      <div class="crush-line" style="background:#e6f7ee;color:#2f9e44;">💌 Ta 的联系方式：{{ r['contact'] }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">还没有人回应，把表白页链接发给她吧 💌</div>
+  {% endif %}
+
+  <div style="text-align:center;">
+    <a class="logout" href="/admin/logout">退出登录</a>
+  </div>
+{% endif %}
+
+</div>
+<script>
+  // 管理页在交流空间回复
+  async function sendChatReply() {
+    const input = document.getElementById("chatReply");
+    const text = input.value.trim();
+    if (!text) {
+      alert("先写点回复内容");
+      return;
+    }
+    try {
+      const res = await fetch("/api/chat_reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        input.value = "";
+        location.reload();
+      } else {
+        alert("回复失败：" + (data.error || "未知原因"));
+      }
+    } catch (e) {
+      alert("发送失败，检查网络");
+    }
+  }
+
+  // 回车发送
+  document.getElementById("chatReply").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") sendChatReply();
+  });
+</script>
+</body>
+</html>

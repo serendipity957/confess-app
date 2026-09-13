@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎉 我们在一起啦</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #ffe3ec 0%, #ffd0e3 45%, #e8d5f5 100%);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; overflow: hidden;
+  }
+  .center {
+    text-align: center; z-index: 2; position: relative;
+    max-width: 420px; width: 100%;
+  }
+  .big-heart {
+    font-size: 100px; line-height: 1;
+    display: inline-block;
+    animation: beat 1s ease-in-out infinite;
+    filter: drop-shadow(0 8px 18px rgba(214, 51, 108, 0.4));
+  }
+  @keyframes beat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.2); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.15); }
+  }
+  h1 {
+    font-size: 34px; color: #d6336c;
+    margin: 20px 0 10px; font-weight: 700;
+  }
+  .sub {
+    font-size: 15px; color: #8a4a63; line-height: 1.8;
+    margin-bottom: 6px;
+  }
+
+  /* 交换联系方式 */
+  .contact-card {
+    margin-top: 22px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 18px;
+    padding: 18px 16px;
+    text-align: left;
+    box-shadow: 0 4px 18px rgba(214, 51, 108, 0.12);
+  }
+  .contact-card .c-title {
+    font-size: 15px; font-weight: 700; color: #d6336c;
+    margin-bottom: 6px;
+  }
+  .contact-card .c-sub {
+    font-size: 12px; color: #b07a8f; margin-bottom: 12px;
+  }
+  .contact-card input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ffc2d4; border-radius: 14px;
+    font-size: 15px; font-family: inherit;
+    color: #5c3344; background: #fff;
+    box-sizing: border-box;
+  }
+  .contact-card input:focus { outline: none; border-color: #d6336c; }
+  .contact-card button {
+    margin-top: 10px; width: 100%;
+    padding: 13px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #ff6b9d, #d6336c);
+    color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .contact-done {
+    font-size: 14px; color: #2f9e44; font-weight: 600;
+    text-align: center; padding: 8px 0;
+  }
+  .fall {
+    position: fixed; top: -40px;
+    animation: fallDown linear infinite;
+    pointer-events: none; z-index: 1;
+  }
+  @keyframes fallDown {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(115vh) rotate(360deg); opacity: 0.6; }
+  }
+</style>
+</head>
+<body>
+
+<div class="center">
+  <span class="big-heart">💖</span>
+  <h1>我们在一起啦</h1>
+  <p class="sub">你说了"我愿意"<br>从这一刻起，我们就是彼此的 Ta 了</p>
+  <p class="sub" style="font-size:13px;color:#b07a8f;">往后请多指教，我会好好珍惜这份喜欢</p>
+
+  {% if record %}
+  <!-- 交换联系方式：先问对方愿不愿意 -->
+  <div class="contact-card" id="contactCard">
+    {% if record.get('contact') %}
+      <div class="c-title">💌 联系方式已经交换啦</div>
+      <div class="contact-done">你留下的联系方式 Ta 已经收到 ✅</div>
+    {% else %}
+      <div id="askBox">
+        <div class="c-title">💌 要不要交换一下联系方式？</div>
+        <div class="c-sub">愿意的话告诉我微信 / QQ / 手机号，Ta 就能联系到你；<br>不想给也没关系，我们可以先在交流空间聊</div>
+        <button onclick="showContactForm()">愿意，告诉你 💌</button>
+        <button onclick="showChatTip()" style="background:#fff;color:#d6336c;border:2px solid #ffc2d4;">先不啦，去交流空间聊聊 🤗</button>
+      </div>
+      <div id="formBox" style="display:none;">
+        <div class="c-title">💌 写下你的联系方式</div>
+        <div class="c-sub">微信 / QQ / 手机号都可以</div>
+        <input id="contact" type="text" placeholder="微信号 / QQ / 手机号…" maxlength="200">
+        <button onclick="sendContact()">告诉 Ta 💌</button>
+      </div>
+      <div id="tipBox" style="display:none;">
+        <div class="c-title">🤗 没关系，不急</div>
+        <div class="c-sub">想聊的时候随时来交流空间，<br>聊得开心了再给也不迟～</div>
+        <a href="/chat" style="display:block;text-align:center;margin-top:10px;padding:13px;border-radius:14px;background:#fff;color:#d6336c;border:2px solid #ffc2d4;font-size:15px;font-weight:600;text-decoration:none;font-family:inherit;">💬 去交流空间聊聊</a>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  var MY_ID = "{{ record['id'] if record else '' }}";
+
+  function showContactForm() {
+    document.getElementById("askBox").style.display = "none";
+    document.getElementById("formBox").style.display = "block";
+    document.getElementById("contact").focus();
+  }
+
+  function showChatTip() {
+    document.getElementById("askBox").style.display = "none";
+    document.getElementById("tipBox").style.display = "block";
+  }
+
+  async function sendContact() {
+    const input = document.getElementById("contact");
+    const text = input.value.trim();
+    if (!text) {
+      alert("先写下你的联系方式哦");
+      return;
+    }
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: MY_ID, contact: text })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const card = document.getElementById("contactCard");
+        card.innerHTML = '<div class="c-title">💌 联系方式已经交换啦</div>' +
+                         '<div class="contact-done">你留下的联系方式 Ta 已经收到 ✅</div>';
+      } else {
+        alert("发送失败：" + (data.error || "未知原因"));
+      }
+    } catch (e) {
+      alert("发送失败，检查网络");
+    }
+  }
+
+  // 飘落爱心 + 彩纸
+  const emojis = ["💖", "💗", "💘", "💝", "❤️", "✨", "🎉", "🌸"];
+  for (let i = 0; i < 24; i++) {
+    const el = document.createElement("div");
+    el.className = "fall";
+    el.textContent = emojis[i % emojis.length];
+    el.style.left = Math.random() * 100 + "vw";
+    el.style.fontSize = (16 + Math.random() * 22) + "px";
+    el.style.animationDuration = (4 + Math.random() * 5) + "s";
+    el.style.animationDelay = (-Math.random() * 8) + "s";
+    document.body.appendChild(el);
+  }
+</script>
+</body>
+</html>
