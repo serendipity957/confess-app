@@ -243,29 +243,54 @@
         });
       }
 
-      // 记录卡片 HTML
+      // 记录卡片 HTML（同分钟重复回应合并显示，云端数据保留不删）
       let itemsHtml = "";
       if (records.length === 0) {
         itemsHtml = '<div class="empty">还没有人回应，把表白页链接发给她吧 💌</div>';
       } else {
+        // 按「选择 + 分钟」分组，避免测试时连续点击刷屏
+        const groups = [];
+        const seen = {};
         records.forEach(function (r) {
-          let tag = "";
-          if (r.choice === "有喜欢的人了") {
-            tag = '<span class="tag tag-crush">💔 有喜欢的人了</span>';
-          } else if (r.choice === "还是做朋友吧") {
-            tag = '<span class="tag tag-crush">🤝 还是做朋友吧</span>';
-          } else if (r.choice === "我愿意") {
-            tag = '<span class="tag tag-yes">我愿意</span>';
-          } else {
-            tag = '<span class="tag tag-think">让我再想想</span>';
+          const key = r.choice + "|" + (r.time || "").slice(0, 16) + "|" + (r.crush || "");
+          if (!seen[key]) {
+            seen[key] = { list: [] };
+            groups.push(seen[key]);
           }
+          seen[key].list.push(r);
+        });
+        groups.forEach(function (g) {
+          g.list.sort(function (a, b) { return (a.time || "").localeCompare(b.time || ""); });
+        });
+        groups.sort(function (a, b) {
+          const ta = a.list[a.list.length - 1].time || "";
+          const tb = b.list[b.list.length - 1].time || "";
+          return tb.localeCompare(ta);
+        });
+
+        groups.forEach(function (g) {
+          const list = g.list;
+          const r = list[list.length - 1]; // 组内最新一条为代表
+          let tagTxt = "";
+          let clsTag = "tag tag-think";
+          if (r.choice === "有喜欢的人了") { tagTxt = "💔 有喜欢的人了"; clsTag = "tag tag-crush"; }
+          else if (r.choice === "还是做朋友吧") { tagTxt = "🤝 还是做朋友吧"; clsTag = "tag tag-crush"; }
+          else if (r.choice === "我愿意") { tagTxt = "我愿意"; clsTag = "tag tag-yes"; }
+          else { tagTxt = "让我再想想"; }
+          if (list.length > 1) tagTxt += " ×" + list.length;
+          const tag = '<span class="' + clsTag + '">' + tagTxt + '</span>';
           let body = "";
           if (r.crush) {
             body += '<div class="crush-line">💘 Ta 喜欢的人：' + esc(r.crush) + '</div>';
           }
-          // 该记录下的所有消息（含回复）
-          const msgs = messages.filter(m => m.record_id === r.id);
+          // 组内所有消息（重复的只显示一条）
+          const ids = list.map(x => x.id);
+          const msgs = messages.filter(m => ids.indexOf(m.record_id) !== -1);
+          const seenMsg = {};
           msgs.forEach(function (m) {
+            const mk = m.who + "|" + m.text + "|" + m.time;
+            if (seenMsg[mk]) return;
+            seenMsg[mk] = true;
             const cls = m.who === "me" ? "reply" : "";
             const who = m.who === "me" ? "我" : "Ta";
             body += '<div class="msg ' + cls + '">' +
