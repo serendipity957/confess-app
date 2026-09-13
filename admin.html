@@ -54,7 +54,7 @@
   .row.ta .bubble { background: #ffe9f0; color: #5c3344; border-bottom-left-radius: 4px; }
   .row.me .bubble { background: linear-gradient(135deg, #ff6b9d, #d6336c); color: #fff; border-bottom-right-radius: 4px; }
   .mtime { font-size: 10px; color: #c9a7b8; margin-top: 3px; padding: 0 4px; }
-  .chat-input { display: flex; gap: 8px; margin-top: 12px; }
+  .chat-input { display: flex; gap: 8px; margin-top: 12px; position: relative; }
   .chat-input input {
     flex: 1; min-width: 0;
     padding: 10px 12px;
@@ -69,6 +69,35 @@
     color: #fff; font-size: 14px; font-weight: 600;
     cursor: pointer; font-family: inherit;
   }
+  .emoji-btn {
+    padding: 8px 11px;
+    border: 2px solid #ffc2d4; border-radius: 12px;
+    background: #fff; font-size: 20px; line-height: 1;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .emoji-btn:hover { background: #ffe9f0; }
+  .emoji-panel {
+    position: absolute; bottom: 56px; left: 0; right: 0;
+    background: #fff;
+    border: 2px solid #ffc2d4; border-radius: 14px;
+    padding: 8px; max-height: 210px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(214, 51, 108, 0.18);
+    z-index: 20; display: none;
+  }
+  .emoji-panel.show { display: grid; }
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 2px;
+  }
+  .emoji-item {
+    width: 36px; height: 36px;
+    font-size: 21px;
+    border: none; background: transparent; border-radius: 8px;
+    cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .emoji-item:hover { background: #ffe9f0; }
 
   /* 留言卡片 */
   .item {
@@ -258,7 +287,9 @@
           '<div class="chat-title">💬 交流空间</div>' +
           '<div class="chat-body" id="chatBody">' + chatHtml + '</div>' +
           '<div class="chat-input">' +
+            '<div class="emoji-panel" id="emojiPanel"><div class="emoji-grid" id="emojiGrid"></div></div>' +
             '<input id="chatReply" type="text" placeholder="回复 Ta…" maxlength="500">' +
+            '<button class="emoji-btn" onclick="toggleEmoji(event)" type="button">😊</button>' +
             '<button onclick="sendChatReply()">回复</button>' +
           '</div>' +
         '</div>' +
@@ -273,10 +304,52 @@
       document.getElementById("chatReply").addEventListener("keydown", function (e) {
         if (e.key === "Enter") sendChatReply();
       });
+      buildEmojiPanel();
     } catch (e) {
       wrap.innerHTML = '<div class="empty">加载失败：' + esc(e.message || "检查网络") + '</div>';
     }
   }
+
+  // ===== 表情选择（与交流空间同款） =====
+  const EMOJIS = ["😀","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😮","😲","🥱","😴","🤤","😪","😵","🤐","🤢","🤮","🤧","😷","🤒","🤕","🤠","😈","👿","👻","💩","👽","🤖","😺","😸","😻","😼","😽","🙀","❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","❣️","💕","💞","💓","💗","💖","💘","💝","💟","💌","💋","💯","✨","🌟","⭐","🌈","☁️","⚡","🔥","💥","🌹","🥀","🌺","🌸","🌼","🌻","🍀","🍁","🍄","🌵","🎈","🎉","🎊","🎀","🎁","🏆","🥇","🥈","🥉","🎯","🎮","🎲","🎨","👍","👎","👌","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","👇","☝️","✋","🤚","🖐️","🖖","👋","🤛","🤜","✊","👊","🙌","🙏","👏","🤝","💪","🫶","🫰","🫡","🐱","🐶","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🐣","🦄","🐝","🦋","🐌","🐞","🐢","🐙","🦑","🐟","🐬","🐳","🦈","🐊","🦓","🦒","🐘","🐪","🦘","🐎","🐖","🐏","🦙","🐐","🦌","🐕","🐩","🐈","🦩","🕊️","🌍","🌎","🌏","🗺️","🏠","🏡","🌃","🌅","🌄","🌉","🎡","🎢","🎠","⛲","⚽","🏀","🏈","⚾","🎾","🏐","🏉","🎱","🏓","🏸","🥅","🎣","🎽","🎿","🛷","🥌","🎯","🎳","⛳","🎰","🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐","🚚","🚛","🚜","🛴","🚲","🛵","🏍️","🚨","🚔","🚍","🚘","🚖","✈️","🛫","🛬","🛩️","💺","🚀","🛸","🚁","⛵","🚤","🛥️","🛳️","⛴️","🚢","⚓","🧭","📱","💻","⌨️","🖥️","🖨️","💽","💾","💿","📀","📷","📸","📹","🎥","📽️","📞","☎️","📟","📠","📺","📻","🔋","🔌","💡","🔦","🕯️","💸","💵","💴","💶","💷","💰","💳","💎","⚖️","🔧","🔨","⚒️","🔩","⚙️","🧱","🔪","🗡️","⚔️","🛡️","🏺","🔮","📿","💊","💉","🩺","🌡️","🧹","🧺","🧻","🧼","🪒","🧽","🧲","🕶️","🎧","👑","🎩","🎓","🧢","👟","👞","👠","👡","👢","👕","👔","🧥","👗","👘","👙","👜","👝","👛","🛍️","🎒","👓","🐚","🐡","🐠","🦈","🦭","🦎","🐍","🐲","🐉","🦕","🦖","🦗","🕷️","🕸️","🦂","🦟","🪰","🪲","🦠","🦴","🦷","👀","👁️","👃","👂","👅","👄","💅","🤳","👱","👲","🧓","👴","👵","👶","👧","👦","👩","👨","🧔","🧕","👳","👮","🕵️","💂","👷","🤴","👸","👰","🤵","🤰","🤱","👼","🎅","🤶","🦸","🦹","🧙","🧚","🧛","🧜","🧝","🧞","🧟","💃","🕺","👯","🧖","🧗","🤺","🏇","⛷️","🏂","🏌️","🏄","🚣","🏊","⛹️","🏋️","🚴","🚵","🤸","🤼","🤽","🤾","🤹","🧘","🛀","🛌","👭","👫","👬","💑","👩‍❤️‍👨","💏","👪","🗣️","👤","👥","☀️","🌙","☁️","⛅","🌧️","⛈️","🌩️","❄️","🌨️","🌬️","💨","🌪️","🌫️","🌊","☔","☂️","🌂","🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🍯","🥛","🍼","☕","🫖","🍵","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴","🍽️","🥣","🥡","🥢","🧂","🪅","🪆","🪡","🧵","🧶","🪢","🪝","🪚","🪛","🪤","🪧","🪞","🪟","🪑","🛋️","🛏️","🚪","🛗","🪜","🪨","🪵","🪴","🌾","🌿","☘️","🍃","🍂","🌱","🌲","🌳","🌴","🌷","🌸","🌹","🥀","🌺","🌻","🌼","🌽","🌾","🌿","🍄","🍁","🍂","🍃","🌊","💧"];
+
+  function buildEmojiPanel() {
+    const grid = document.getElementById("emojiGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    EMOJIS.forEach(function (e) {
+      const b = document.createElement("button");
+      b.className = "emoji-item";
+      b.textContent = e;
+      b.type = "button";
+      b.onclick = function () { insertEmoji(e); };
+      grid.appendChild(b);
+    });
+  }
+
+  function toggleEmoji(ev) {
+    ev.stopPropagation();
+    document.getElementById("emojiPanel").classList.toggle("show");
+  }
+
+  function insertEmoji(e) {
+    const input = document.getElementById("chatReply");
+    if (!input) return;
+    const start = input.selectionStart || input.value.length;
+    const end = input.selectionEnd || input.value.length;
+    input.value = input.value.slice(0, start) + e + input.value.slice(end);
+    const pos = start + e.length;
+    input.setSelectionRange(pos, pos);
+    input.focus();
+  }
+
+  // 点面板外面关闭表情面板
+  document.addEventListener("click", function (e) {
+    const p = document.getElementById("emojiPanel");
+    if (p && !e.target.closest(".emoji-btn") && !e.target.closest(".emoji-panel")) {
+      p.classList.remove("show");
+    }
+  });
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
