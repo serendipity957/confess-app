@@ -14,6 +14,14 @@
   .wrap { max-width: 520px; margin: 0 auto; }
   h1 { font-size: 22px; color: #d6336c; margin-bottom: 4px; }
   .sub { font-size: 13px; color: #9a7a88; margin-bottom: 20px; }
+  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .head-row h1 { margin: 0; }
+  .refresh-btn {
+    flex-shrink: 0; background: #fff; border: 1px solid #ffb3c6;
+    color: #d6336c; border-radius: 20px; padding: 7px 15px;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .refresh-btn:active { background: #ffe3ea; }
 
   /* 统计卡片 */
   .stats { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -133,6 +141,35 @@
   .msg .mwho { font-size: 11px; color: #b9a2ad; font-weight: 600; }
   .empty { text-align: center; color: #b9a2ad; font-size: 14px; padding: 40px 0; }
 
+  /* 折叠展开 + 删除 */
+  .toggle-detail {
+    margin-top: 10px; width: 100%;
+    background: #fff7fa; border: 1px dashed #ffb3c6;
+    color: #d6336c; border-radius: 10px;
+    padding: 8px 12px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .toggle-detail:hover { background: #ffe9f0; }
+  .rec-detail { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .rec-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fdf2f6; border-radius: 8px; padding: 7px 10px;
+  }
+  .rec-time { font-size: 12px; color: #9a7a88; }
+  .del-one {
+    background: #fff; border: 1px solid #ffb3c6; color: #e03131;
+    border-radius: 8px; padding: 4px 10px; font-size: 12px;
+    cursor: pointer; font-family: inherit; flex-shrink: 0;
+  }
+  .del-one:hover { background: #ffe3ea; }
+  .del-single { margin-top: 10px; padding: 7px 12px; }
+  .del-all {
+    margin-top: 4px;
+    background: #fff0f0; border: 1px solid #ffa8a8; color: #e03131;
+    border-radius: 8px; padding: 8px; font-size: 13px;
+    cursor: pointer; font-family: inherit;
+  }
+  .del-all:hover { background: #ffe0e0; }
+
   /* 锁屏（输密码） */
   .lock {
     background: #fff; border-radius: 20px;
@@ -173,6 +210,7 @@
   const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   const ADMIN_PASSWORD = window.ADMIN_PASSWORD || "520520";
   const wrap = document.getElementById("wrap");
+  const expandedGroups = {}; // 记录展开的分组（自动刷新时保持展开）
 
   // ===== 锁屏 =====
   function showLock() {
@@ -243,47 +281,50 @@
         });
       }
 
-      // 记录卡片 HTML（同分钟重复回应合并显示，云端数据保留不删）
+      // 记录卡片 HTML（相同选择折叠合并，可展开看每次时间、可删除）
       let itemsHtml = "";
       if (records.length === 0) {
         itemsHtml = '<div class="empty">还没有人回应，把表白页链接发给她吧 💌</div>';
       } else {
-        // 按「选择 + 分钟」分组，避免测试时连续点击刷屏
+        // 按「选择 + 喜欢的人 + 联系方式」分组
         const groups = [];
         const seen = {};
         records.forEach(function (r) {
-          const key = r.choice + "|" + (r.time || "").slice(0, 16) + "|" + (r.crush || "");
-          if (!seen[key]) {
-            seen[key] = { list: [] };
-            groups.push(seen[key]);
-          }
+          const key = r.choice + "|" + (r.crush || "") + "|" + (r.contact || "");
+          if (!seen[key]) { seen[key] = { list: [] }; groups.push(seen[key]); }
           seen[key].list.push(r);
         });
         groups.forEach(function (g) {
-          g.list.sort(function (a, b) { return (a.time || "").localeCompare(b.time || ""); });
+          g.list.sort(function (a, b) { return (b.time || "").localeCompare(a.time || ""); });
         });
+        // 顺序：我愿意 > 再想想 > 有喜欢的人 > 做朋友；同级再按时间新→旧
+        const choiceRank = { "我愿意": 0, "让我再想想": 1, "有喜欢的人了": 2, "还是做朋友吧": 3 };
         groups.sort(function (a, b) {
-          const ta = a.list[a.list.length - 1].time || "";
-          const tb = b.list[b.list.length - 1].time || "";
-          return tb.localeCompare(ta);
+          const ra = (choiceRank[a.list[0].choice] !== undefined) ? choiceRank[a.list[0].choice] : 9;
+          const rb = (choiceRank[b.list[0].choice] !== undefined) ? choiceRank[b.list[0].choice] : 9;
+          if (ra !== rb) return ra - rb;
+          return (b.list[0].time || "").localeCompare(a.list[0].time || "");
         });
 
         groups.forEach(function (g) {
           const list = g.list;
-          const r = list[list.length - 1]; // 组内最新一条为代表
-          let tagTxt = "";
-          let clsTag = "tag tag-think";
+          const r = list[0]; // 最新一条为代表
+          let tagTxt = "", clsTag = "tag tag-think";
           if (r.choice === "有喜欢的人了") { tagTxt = "💔 有喜欢的人了"; clsTag = "tag tag-crush"; }
           else if (r.choice === "还是做朋友吧") { tagTxt = "🤝 还是做朋友吧"; clsTag = "tag tag-crush"; }
           else if (r.choice === "我愿意") { tagTxt = "我愿意"; clsTag = "tag tag-yes"; }
           else { tagTxt = "让我再想想"; }
           if (list.length > 1) tagTxt += " ×" + list.length;
           const tag = '<span class="' + clsTag + '">' + tagTxt + '</span>';
+
           let body = "";
           if (r.crush) {
             body += '<div class="crush-line">💘 Ta 喜欢的人：' + esc(r.crush) + '</div>';
           }
-          // 组内所有消息（重复的只显示一条）
+          if (r.contact) {
+            body += '<div class="crush-line" style="background:#e6f7ee;color:#2f9e44;">💌 Ta 的联系方式：' + esc(r.contact) + '</div>';
+          }
+          // 组内留言（重复的只显示一条）
           const ids = list.map(x => x.id);
           const msgs = messages.filter(m => ids.indexOf(m.record_id) !== -1);
           const seenMsg = {};
@@ -297,17 +338,34 @@
                     '<div class="mwho">' + who + ' · ' + (m.time || "") + '</div>' +
                     esc(m.text || "") + '</div>';
           });
-          if (r.contact) {
-            body += '<div class="crush-line" style="background:#e6f7ee;color:#2f9e44;">💌 Ta 的联系方式：' + esc(r.contact) + '</div>';
+
+          // 展开区：每次记录的时间 + 删除按钮
+          const gkey = r.choice + "|" + (r.crush || "") + "|" + (r.contact || "");
+          const isOpen = !!expandedGroups[gkey];
+          let detail = "";
+          if (list.length > 1) {
+            let rows = "";
+            list.forEach(function (one) {
+              rows += '<div class="rec-row"><span class="rec-time">🕐 ' + esc(one.time || "") + '</span>' +
+                      '<button class="del-one" onclick="deleteRecord(\'' + one.id + '\')">删除</button></div>';
+            });
+            detail = '<button class="toggle-detail" data-n="' + list.length + '" data-key="' + esc(gkey) + '" onclick="toggleDetail(this)">' +
+                     (isOpen ? "▾ 收起" : "▸ 展开 " + list.length + " 条记录") + '</button>' +
+                     '<div class="rec-detail" style="display:' + (isOpen ? "block" : "none") + ';">' + rows +
+                     '<button class="del-all" onclick="deleteGroup(\'' + list.map(x => x.id).join(",") + '\')">🗑 删除整组（' + list.length + ' 条）</button></div>';
+          } else {
+            detail = '<button class="del-one del-single" onclick="deleteRecord(\'' + r.id + '\')">🗑 删除这条</button>';
           }
+
           itemsHtml += '<div class="item"><div class="item-head">' + tag +
-            '<span class="time">' + esc(r.time || "") + '</span></div>' + body + '</div>';
+            '<span class="time">' + esc(r.time || "") + '</span></div>' + body + detail + '</div>';
         });
       }
 
       wrap.innerHTML =
-        '<h1>💌 表白管理</h1>' +
-        '<p class="sub">交流空间在确认前用；确认通过主页按钮</p>' +
+        '<div class="head-row"><h1>💌 表白管理</h1>' +
+        '<button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">🔄 刷新</button></div>' +
+        '<p class="sub">交流空间在确认前用；确认通过主页按钮（每 10 秒自动刷新）</p>' +
         '<div class="chat-box">' +
           '<div class="chat-title">💬 交流空间</div>' +
           '<div class="chat-body" id="chatBody">' + chatHtml + '</div>' +
@@ -388,6 +446,46 @@
            p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
   }
 
+  // 展开 / 收起某组重复记录
+  function toggleDetail(btn) {
+    const d = btn.nextElementSibling;
+    const n = btn.getAttribute("data-n");
+    const k = btn.getAttribute("data-key");
+    const open = d.style.display !== "none";
+    d.style.display = open ? "none" : "block";
+    btn.textContent = open ? ("▸ 展开 " + n + " 条记录") : "▾ 收起";
+    if (open) { delete expandedGroups[k]; } else { expandedGroups[k] = true; }
+  }
+
+  // 删除单条记录（连同它的留言）
+  async function deleteRecord(id) {
+    if (!confirm("确定删除这条记录吗？\n删除后云端也会移除，不可恢复。")) return;
+    try {
+      await sb.from("messages").delete().eq("record_id", id);
+      const { error } = await sb.from("records").delete().eq("id", id);
+      if (error) { alert("删除失败：" + (error.message || "未知原因")); return; }
+      loadDashboard();
+    } catch (e) {
+      alert("删除失败，检查网络");
+    }
+  }
+
+  // 删除整组重复记录
+  async function deleteGroup(idListStr) {
+    const ids = idListStr.split(",");
+    if (!confirm("确定删除整组 " + ids.length + " 条记录吗？\n删除后云端也会移除，不可恢复。")) return;
+    try {
+      for (const id of ids) {
+        await sb.from("messages").delete().eq("record_id", id);
+        const { error } = await sb.from("records").delete().eq("id", id);
+        if (error) { alert("删除失败：" + (error.message || "未知原因")); return; }
+      }
+      loadDashboard();
+    } catch (e) {
+      alert("删除失败，检查网络");
+    }
+  }
+
   async function sendChatReply() {
     const input = document.getElementById("chatReply");
     const text = input.value.trim();
@@ -408,10 +506,29 @@
     }
   }
 
+  // 手动刷新（与 10 秒自动刷新互不冲突）
+  let refreshing = false;
+  async function manualRefresh() {
+    if (refreshing) return;
+    refreshing = true;
+    const btn = document.getElementById("refreshBtn");
+    if (btn) btn.textContent = "⏳ 刷新中…";
+    await loadDashboard();
+    const b = document.getElementById("refreshBtn");
+    if (b) {
+      b.textContent = "✅ 已刷新";
+      setTimeout(function () {
+        const bb = document.getElementById("refreshBtn");
+        if (bb) bb.textContent = "🔄 刷新";
+      }, 1200);
+    }
+    refreshing = false;
+  }
+
   // ===== 启动 =====
   if (localStorage.getItem("confess_admin_ok") === "1") {
     loadDashboard();
-    setInterval(loadDashboard, 8000);
+    setInterval(loadDashboard, 10000);
   } else {
     showLock();
   }
