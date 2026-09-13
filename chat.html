@@ -52,7 +52,36 @@
   .input-row {
     display: flex; gap: 8px; margin-top: 12px;
     border-top: 1px dashed #ffc2d4; padding-top: 12px;
+    position: relative;
   }
+  .emoji-btn {
+    padding: 8px 11px;
+    border: 2px solid #ffc2d4; border-radius: 14px;
+    background: #fff; font-size: 20px; line-height: 1;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .emoji-btn:hover { background: #ffe9f0; }
+  .emoji-panel {
+    position: absolute; bottom: 60px; left: 0; right: 0;
+    background: #fff;
+    border: 2px solid #ffc2d4; border-radius: 14px;
+    padding: 8px; max-height: 210px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(214, 51, 108, 0.18);
+    z-index: 10; display: none;
+  }
+  .emoji-panel.show { display: grid; }
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 2px;
+  }
+  .emoji-item {
+    width: 36px; height: 36px;
+    font-size: 21px; line-height: 36px;
+    border: none; background: transparent; border-radius: 8px;
+    cursor: pointer; padding: 0; text-align: center;
+  }
+  .emoji-item:hover { background: #ffe9f0; }
   .input-row input {
     flex: 1; min-width: 0;
     padding: 11px 13px;
@@ -88,6 +117,8 @@
   </div>
 
   <div class="input-row">
+    <button class="emoji-btn" onclick="toggleEmoji(event)" type="button">😊</button>
+    <div class="emoji-panel" id="emojiPanel"><div class="emoji-grid" id="emojiGrid"></div></div>
     <input id="chatText" type="text" placeholder="想说什么都可以…" maxlength="500">
     <button onclick="sendChat()">发送 💌</button>
   </div>
@@ -159,11 +190,51 @@
     }
   }
 
+  // 表情选择（微信同款：点表情插入输入框）
+  const EMOJIS = ["😀","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😮","😲","🥱","😴","🤤","😪","😵","🤐","🤢","🤮","🤧","😷","🤒","🤕","🤠","😈","👿","👻","💩","👽","🤖","😺","😸","😻","😼","😽","🙀","❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","❣️","💕","💞","💓","💗","💖","💘","💝","💟","💌","💋","💯","✨","🌟","⭐","🌈","☁️","⚡","🔥","💥","🌹","🥀","🌺","🌸","🌼","🌻","🍀","🍁","🍄","🌵","🎈","🎉","🎊","🎀","🎁","🏆","🥇","🥈","🥉","🎯","🎮","🎲","🎨","👍","👎","👌","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","👇","☝️","✋","🤚","🖐️","🖖","👋","🤛","🤜","✊","👊","🙌","🙏","👏","🤝","💪","🫶","🫰","🫡","🐱","🐶","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🐣","🦄","🐝","🦋","🐌","🐞","🐢","🐙","🦑","🐟","🐬","🐳","🦈","🐊","🦓","🦒","🐘","🐪","🦘","🐎","🐖","🐏","🦙","🐐","🦌","🐕","🐩","🐈","🦩","🕊️","🌍","🌎","🌏","🗺️","🏠","🏡","🌃","🌅","🌄","🌉","🎡","🎢","🎠","⛲","⚽","🏀","🏈","⚾","🎾","🏐","🏉","🎱","🏓","🏸","🥅","🎣","🎽","🎿","🛷","🥌","🎯","🎳","⛳","🎰","🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐","🚚","🚛","🚜","🛴","🚲","🛵","🏍️","🚨","🚔","🚍","🚘","🚖","✈️","🛫","🛬","🛩️","💺","🚀","🛸","🚁","⛵","🚤","🛥️","🛳️","⛴️","🚢","⚓","🧭","📱","💻","⌨️","🖥️","🖨️","💽","💾","💿","📀","📷","📸","📹","🎥","📽️","📞","☎️","📟","📠","📺","📻","🔋","🔌","💡","🔦","🕯️","💸","💵","💴","💶","💷","💰","💳","💎","⚖️","🔧","🔨","⚒️","🔩","⚙️","🧱","🔫","🔪","🗡️","⚔️","🛡️","🏺","🔮","📿","💊","💉","🩺","🌡️","🧹","🧺","🧻","🧼","🪒","🧽","🧲","🎁","🕶️","🎧","👑","🎩","🎓","🧢","👟","👞","👠","👡","👢","👕","👔","🧥","👗","👘","👙","🩱","🩲","🩳","🧦","🧤","🧣","👜","👝","👛","🛍️","🎒","👓","🐚","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🦭","🐊","🐢","🦎","🐍","🐲","🐉","🦕","🦖","🦗","🕷️","🕸️","🦂","🦟","🪰","🪲","🦠","🦴","🦷","👀","👁️","👃","👂","👅","👄","💅","🤳","👱","👲","🧓","👴","👵","👶","👧","👦","👩","👨","👩‍🦰","👨‍🦰","👩‍🦱","👨‍🦱","👩‍🦳","👨‍🦳","👩‍🦲","👨‍🦲","🧔","🧕","👳","👮","🕵️","💂","👷","🤴","👸","👰","🤵","🤰","🤱","👼","🎅","🤶","🦸","🦹","🧙","🧚","🧛","🧜","🧝","🧞","🧟","💃","🕺","👯","🧖","🧗","🤺","🏇","⛷️","🏂","🏌️","🏄","🚣","🏊","⛹️","🏋️","🚴","🚵","🤸","🤼","🤽","🤾","🤹","🧘","🛀","🛌","👭","👫","👬","💑","👩‍❤️‍👨","💏","👪","🗣️","👤","👥","⚡","☀️","🌙","☁️","⛅","🌧️","⛈️","🌩️","❄️","🌨️","🌬️","💨","🌪️","🌫️","🌊","☔","☂️","🌂","🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🍯","🥛","🍼","☕","🫖","🍵","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴","🍽️","🥣","🥡","🥢","🧂","🎂","🎉","🎊","🎈","🎁","🎀","🪅","🪆","🪡","🧵","🧶","🪢","🪝","🪚","🪛","🪤","🪧","🪞","🪟","🪑","🛋️","🛏️","🚪","🛗","🪜","🪑","🧱","🪨","🪵","🧊","🪴","🌾","🌿","☘️","🍀","🍃","🍂","🍁","🌱","🌲","🌳","🌴","🌵","🌷","🌸","🌹","🥀","🌺","🌻","🌼","🌽","🌾","🌿","🍄","🍁","🍂","🍃","🌊","💧","🍎","🍊","🍋","🍒","🍇","🍉","🍓","🍑","🍍","🥭","🥝","🍅","🥑","🍆","🥔","🥕","🌽","🌶️","🥦","🥬","🥒","🥗","🍱","🍣","🍜","🍝","🍛","🍲","🍚","🍙","🍘","🥟","🍤","🍡","🍧","🍨","🍦","🍰","🎂","🧁","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🥛","🍼","☕","🍵","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊"];
+
+  function buildEmojiPanel() {
+    const grid = document.getElementById("emojiGrid");
+    if (!grid) return;
+    EMOJIS.forEach(function (e) {
+      const b = document.createElement("button");
+      b.className = "emoji-item";
+      b.textContent = e;
+      b.type = "button";
+      b.onclick = function () { insertEmoji(e); };
+      grid.appendChild(b);
+    });
+  }
+
+  function toggleEmoji(ev) {
+    ev.stopPropagation();
+    document.getElementById("emojiPanel").classList.toggle("show");
+  }
+
+  function insertEmoji(e) {
+    const input = document.getElementById("chatText");
+    const start = input.selectionStart || input.value.length;
+    const end = input.selectionEnd || input.value.length;
+    input.value = input.value.slice(0, start) + e + input.value.slice(end);
+    const pos = start + e.length;
+    input.setSelectionRange(pos, pos);
+    input.focus();
+  }
+
+  // 点面板外面关闭表情面板
+  document.addEventListener("click", function (e) {
+    const p = document.getElementById("emojiPanel");
+    if (p && !e.target.closest(".emoji-btn") && !e.target.closest(".emoji-panel")) {
+      p.classList.remove("show");
+    }
+  });
+
   // 回车发送
   document.getElementById("chatText").addEventListener("keydown", function (e) {
     if (e.key === "Enter") sendChat();
   });
 
+  buildEmojiPanel();
   loadChat();
   // 每 5 秒刷新一次，看有没有新消息
   setInterval(loadChat, 5000);
