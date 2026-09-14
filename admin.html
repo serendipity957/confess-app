@@ -162,13 +162,18 @@
   }
   .del-one:hover { background: #ffe3ea; }
   .del-single { margin-top: 10px; padding: 7px 12px; }
-  .del-all {
-    margin-top: 4px;
+  /* 批量勾选删除 */
+  .rec-pick { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; cursor: pointer; }
+  .rec-pick input, .pick-all input { width: 20px; height: 20px; flex-shrink: 0; cursor: pointer; accent-color: #e64980; }
+  .batch-bar { margin-top: 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .pick-all { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8a5a6c; cursor: pointer; user-select: none; }
+  .del-sel {
     background: #fff0f0; border: 1px solid #ffa8a8; color: #e03131;
-    border-radius: 8px; padding: 8px; font-size: 13px;
+    border-radius: 8px; padding: 8px 14px; font-size: 13px;
     cursor: pointer; font-family: inherit;
   }
-  .del-all:hover { background: #ffe0e0; }
+  .del-sel:hover:not(:disabled) { background: #ffe0e0; }
+  .del-sel:disabled { opacity: .45; cursor: not-allowed; }
 
   /* 锁屏（输密码） */
   .lock {
@@ -211,6 +216,7 @@
   const ADMIN_PASSWORD = window.ADMIN_PASSWORD || "520520";
   const wrap = document.getElementById("wrap");
   const expandedGroups = {}; // 记录展开的分组（自动刷新时保持展开）
+  const selectedRecords = {}; // 记录勾选待批量删除的记录 id（自动刷新时保持勾选）
 
   // ===== 锁屏 =====
   function showLock() {
@@ -351,14 +357,27 @@
           let detail = "";
           if (list.length > 1) {
             let rows = "";
+            let pickedInGroup = 0;
             list.forEach(function (one) {
-              rows += '<div class="rec-row"><span class="rec-time">🕐 ' + esc(one.time || "") + '</span>' +
+              const isPicked = !!selectedRecords[one.id];
+              if (isPicked) pickedInGroup++;
+              rows += '<div class="rec-row"><label class="rec-pick">' +
+                      '<input type="checkbox" ' + (isPicked ? "checked" : "") +
+                      ' onchange="togglePick(this,\'' + one.id + '\')">' +
+                      '<span class="rec-time">🕐 ' + esc(one.time || "") + '</span></label>' +
                       '<button class="del-one" onclick="deleteRecord(\'' + one.id + '\')">删除</button></div>';
             });
+            const allIds = list.map(x => x.id).join(",");
+            const allChecked = pickedInGroup === list.length;
             detail = '<button class="toggle-detail" data-n="' + list.length + '" data-key="' + esc(gkey) + '" onclick="toggleDetail(this)">' +
                      (isOpen ? "▾ 收起" : "▸ 展开 " + list.length + " 条记录") + '</button>' +
                      '<div class="rec-detail" style="display:' + (isOpen ? "block" : "none") + ';">' + rows +
-                     '<button class="del-all" onclick="deleteGroup(\'' + list.map(x => x.id).join(",") + '\')">🗑 删除整组（' + list.length + ' 条）</button></div>';
+                     '<div class="batch-bar">' +
+                       '<label class="pick-all"><input type="checkbox" ' + (allChecked ? "checked" : "") +
+                       ' onchange="togglePickAll(this,\'' + allIds + '\')">全选本组</label>' +
+                       '<button class="del-sel" ' + (pickedInGroup === 0 ? "disabled" : "") +
+                       ' onclick="deletePicked()">🗑 删除选中（<span class="sel-cnt">' + pickedInGroup + '</span> 条）</button>' +
+                     '</div></div>';
           } else {
             detail = '<button class="del-one del-single" onclick="deleteRecord(\'' + r.id + '\')">🗑 删除这条</button>';
           }
@@ -371,7 +390,7 @@
       wrap.innerHTML =
         '<div class="head-row"><h1>💌 表白管理</h1>' +
         '<button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">🔄 刷新</button></div>' +
-        '<p class="sub">交流空间在确认前用；确认通过主页按钮（每 10 秒自动刷新）</p>' +
+        '<p class="sub">交流空间在确认前用；确认通过主页按钮（点刷新按钮拉取新数据）</p>' +
         '<div class="chat-box">' +
           '<div class="chat-title">💬 交流空间</div>' +
           '<div class="chat-body" id="chatBody">' + chatHtml + '</div>' +
@@ -500,6 +519,63 @@
     }
   }
 
+  // ===== 批量勾选删除 =====
+  // 勾选 / 取消某条
+  function togglePick(cb, id) {
+    if (cb.checked) selectedRecords[id] = true; else delete selectedRecords[id];
+    // 同步更新所在组"删除选中"按钮计数与全选状态
+    const row = cb.closest(".rec-row");
+    const detail = row ? row.closest(".rec-detail") : null;
+    if (!detail) return;
+    updateBatchBar(detail);
+  }
+
+  // 勾选 / 取消整组
+  function togglePickAll(cb, idListStr) {
+    const ids = idListStr.split(",");
+    ids.forEach(function (id) {
+      if (cb.checked) selectedRecords[id] = true; else delete selectedRecords[id];
+    });
+    // 同步每条 checkbox 的状态
+    const detail = cb.closest(".rec-detail");
+    if (!detail) return;
+    const boxes = detail.querySelectorAll(".rec-row input[type=checkbox]");
+    boxes.forEach(function (b) { b.checked = cb.checked; });
+    updateBatchBar(detail);
+  }
+
+  // 刷新某组底部的计数与按钮可用性
+  function updateBatchBar(detail) {
+    const boxes = detail.querySelectorAll(".rec-row input[type=checkbox]");
+    const btn = detail.querySelector(".del-sel");
+    const cnt = detail.querySelector(".sel-cnt");
+    const pickAll = detail.querySelector(".pick-all input[type=checkbox]");
+    if (!btn) return;
+    let n = 0, all = true;
+    boxes.forEach(function (b) { if (b.checked) n++; else all = false; });
+    if (cnt) cnt.textContent = n;
+    btn.disabled = n === 0;
+    if (pickAll) pickAll.checked = all;
+  }
+
+  // 批量删除选中的记录
+  async function deletePicked() {
+    const ids = Object.keys(selectedRecords);
+    if (ids.length === 0) return;
+    if (!confirm("确定删除选中的 " + ids.length + " 条记录吗？\n删除后云端也会移除，不可恢复。")) return;
+    try {
+      for (const id of ids) {
+        await sb.from("messages").delete().eq("record_id", id);
+        const { error } = await sb.from("records").delete().eq("id", id);
+        if (error) { alert("删除失败：" + (error.message || "未知原因")); return; }
+      }
+      Object.keys(selectedRecords).forEach(function (k) { delete selectedRecords[k]; });
+      loadDashboard();
+    } catch (e) {
+      alert("删除失败，检查网络");
+    }
+  }
+
   async function sendChatReply() {
     const input = document.getElementById("chatReply");
     const text = input.value.trim();
@@ -520,7 +596,7 @@
     }
   }
 
-  // 手动刷新（与 10 秒自动刷新互不冲突）
+  // 手动刷新（已关闭自动轮询，点按钮才拉取新数据）
   let refreshing = false;
   async function manualRefresh() {
     if (refreshing) return;
@@ -542,7 +618,6 @@
   // ===== 启动 =====
   if (localStorage.getItem("confess_admin_ok") === "1") {
     loadDashboard();
-    setInterval(loadDashboard, 10000);
   } else {
     showLock();
   }
